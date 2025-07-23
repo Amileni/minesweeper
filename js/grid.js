@@ -227,3 +227,35 @@ arcade.minesweeper.grid.prototype.get_surrounding_tiles = function(x, y) {
 arcade.minesweeper.grid.prototype.get_seed = function() {
 	return this.seed;
 }
+
+arcade.minesweeper.grid.prototype.check_game_end = function() {
+  let allSafeRevealed = true;
+  let mineTriggered = false;
+  let allMinesFlagged = true;
+
+  for (let x = 0; x < this.width; x++) {
+    for (let y = 0; y < this.height; y++) {
+      const tile = this.tiles[x][y];
+      if (tile.is_a_mine()) {
+        if (tile.is_revealed()) {
+          mineTriggered = true;
+        }
+        if (!tile.is_flagged()) {
+          allMinesFlagged = false;
+        }
+      } else {
+        if (!tile.is_revealed()) {
+          allSafeRevealed = false;
+        }
+      }
+    }
+  }
+
+  if (mineTriggered) {
+    return "lost";
+  }
+  if (allSafeRevealed && allMinesFlagged) {
+    return "won";
+  }
+  return null;
+}

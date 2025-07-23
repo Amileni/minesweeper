@@ -15,6 +15,9 @@ arcade.minesweeper.tile.prototype.is_a_mine = function() {
 arcade.minesweeper.tile.prototype.is_revealed = function() {
   return this.is_revealed_;
 }
+arcade.minesweeper.tile.prototype.is_flagged = function() {
+  return this.get_state() === "flag";
+}
 arcade.minesweeper.tile.prototype.get_mine_count = function() {
   return this.mine_count;
 }

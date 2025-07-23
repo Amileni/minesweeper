@@ -133,7 +133,7 @@ arcade.minesweeper.prototype.restart = function() {
 
 $.ready(function() {
   var minesweeper = new arcade.minesweeper($("#play_area"));
-  minesweeper.new_game(16, 16, 40);
+  minesweeper.new_game(16, 16, 1);
 
   $("#button_beginner").addEventListener("click", function() {
     minesweeper.new_game(9, 9, 10);
@@ -230,7 +230,17 @@ $.ready(function() {
       }
       if(e.which == 1) minesweeper.mouse.left = false;
       else if(e.which == 3) minesweeper.mouse.right = false;
+
+      // Check if the game has ended after revealing a tile or flagging
+      const result = minesweeper.grid.check_game_end();
+      if (result === "lost") {
+        console.log("Game Over! You lost.");
+      }
+      if (result === "won") {
+        console.log("Congratulations! You won the game.");
+      }
     })
+
     .addEventListener("keydown", function() {
 
     });
