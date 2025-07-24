@@ -120,9 +120,11 @@ arcade.minesweeper.prototype.new_game = function(width, height, number_mines) {
     });
 
   this.mine_counter = new arcade.minesweeper.ssd(this.header_td_mine_count, number_mines)
-  var timer = new arcade.minesweeper.ssd(this.header_td_timer, 0);
+  this.timer = new arcade.minesweeper.ssd(this.header_td_timer, 0);
 
-  setInterval(function() { timer.increment(); }, 1000);
+  setInterval(function() { 
+    if (typeof this.timer !== "undefined") this.timer.increment(); 
+  }.bind(this), 1000);
 
 	this.grid = new arcade.minesweeper.grid(this, this.grid_area, width, height, face);
 	this.grid.generate(number_mines);
@@ -143,6 +145,10 @@ $.ready(function() {
   });
   $("#button_expert").addEventListener("click", function() {
     minesweeper.new_game(30, 16, 99);
+  });
+
+  $('button_validate').addEventListener("click", function() {
+    minesweeper.new_game(minesweeper.width, minesweeper.height, minesweeper.number_mines);
   });
 
   $(document)
@@ -238,6 +244,9 @@ $.ready(function() {
       }
       if (result === "won") {
         console.log("Congratulations! You won the game.");
+        showHighscorePage(minesweeper.timer.get_value(), function() {
+          minesweeper.new_game(minesweeper.width, minesweeper.height, minesweeper.number_mines);
+        });
       }
     })
 
@@ -245,3 +254,96 @@ $.ready(function() {
 
     });
 });
+
+function showHighscorePage(currentScore, startNewGameCallback) {
+  // Remove any existing overlay
+  const oldOverlay = document.getElementById('highscore-overlay');
+  if (oldOverlay) oldOverlay.remove();
+
+  // Placeholder scores, more than 5 entries
+  const scores = [
+    { name: "Alice", score: 42 },
+    { name: "Bob", score: 55 },
+    { name: "Charlie", score: 38 },
+    { name: "Diana", score: 47 },
+    { name: "Eve", score: 50 },
+    { name: "Frank", score: 44 },
+    { name: "Grace", score: 41 },
+    { name: "", score: currentScore, isCurrent: true } // Current score row
+  ];
+
+  // Sort scores ascending (best = lowest score)
+  scores.sort((a, b) => a.score - b.score);
+
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'highscore-overlay';
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100vw';
+  overlay.style.height = '100vh';
+  overlay.style.background = 'rgba(0,0,0,0.7)';
+  overlay.style.display = 'flex';
+  overlay.style.flexDirection = 'column';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.zIndex = '9999';
+
+  // Highscore table
+  const table = document.createElement('table');
+  table.style.background = '#fff';
+  table.style.marginBottom = '20px';
+  table.style.borderCollapse = 'collapse';
+  table.innerHTML = `<tr><th>Name</th><th>Score</th></tr>`;
+
+  // Add scores to table
+  scores.forEach(s => {
+    const tr = document.createElement('tr');
+    if (s.isCurrent) {
+      // Current score row with input
+      const nameTd = document.createElement('td');
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.placeholder = 'Your name';
+      nameInput.style.width = '100px';
+      nameInput.id = 'highscore-name-input';
+      nameTd.appendChild(nameInput);
+
+      const scoreTd = document.createElement('td');
+      scoreTd.textContent = s.score;
+
+      tr.appendChild(nameTd);
+      tr.appendChild(scoreTd);
+      tr.style.background = '#e0ffe0';
+    } else {
+      tr.innerHTML = `<td>${s.name}</td><td>${s.score}</td>`;
+    }
+    table.appendChild(tr);
+  });
+
+  // Validate button
+  const validateBtn = document.createElement('button');
+  validateBtn.id = 'highscore_validate'; // Use a unique id for the modal button
+  validateBtn.textContent = 'Validate';
+  validateBtn.style.marginTop = '10px';
+  validateBtn.onclick = function() {
+    const nameInput = document.getElementById('highscore-name-input');
+    const playerName = nameInput ? (nameInput.value.trim() || "Anonymous") : "Anonymous";
+    for (let row of table.rows) {
+      if (row.style.background === 'rgb(224, 255, 224)') {
+        row.cells[0].textContent = playerName;
+      }
+    }
+    overlay.remove();
+
+    // Trigger the original button_validate click event
+    const btn = document.getElementById('button_validate');
+    if (btn) btn.click();
+  };
+
+  overlay.appendChild(table);
+  overlay.appendChild(validateBtn);
+
+  document.body.appendChild(overlay);
+}

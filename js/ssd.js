@@ -39,6 +39,9 @@ arcade.minesweeper.ssd.prototype.set_value = function(value) {
   }
 
 }
+arcade.minesweeper.ssd.prototype.get_value = function() {
+  return this.value;
+}
 arcade.minesweeper.ssd.prototype.increment = function() {
   this.set_value(this.value + 1);
 }
