@@ -1,3 +1,69 @@
+// --- Gestion serveur et base de données intégrée (Node.js/Express/SQLite) ---
+if (typeof require !== 'undefined' && typeof module !== 'undefined') {
+  const express = require('express');
+  const sqlite3 = require('sqlite3').verbose();
+  const bodyParser = require('body-parser');
+  const path = require('path');
+
+  const app = express();
+  const db = new sqlite3.Database(path.join(__dirname, '../../highscores.db'));
+
+  app.use(bodyParser.json());
+  app.use(express.static(path.join(__dirname, '../../public')));
+
+  // Création de la table si elle n'existe pas
+  db.run(`CREATE TABLE IF NOT EXISTS highscores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    score INTEGER
+  )`);
+
+  // Route POST pour enregistrer un score
+  app.post('/api/highscores', (req, res) => {
+    const { name, score } = req.body;
+    db.run('INSERT INTO highscores (name, score) VALUES (?, ?)', [name, score], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true, id: this.lastID });
+    });
+  });
+
+  // Route GET pour récupérer les 10 meilleurs scores
+  app.get('/api/highscores', (req, res) => {
+    db.all('SELECT name, score FROM highscores ORDER BY score ASC LIMIT 10', [], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+  });
+
+  // Démarrage du serveur
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Serveur Minesweeper lancé sur http://localhost:${PORT}`);
+  });
+}
+// --- Gestion des scores locale avec localStorage ---
+function saveScoreLocal(name, score) {
+  let scores = [];
+  try {
+    scores = JSON.parse(localStorage.getItem('minesweeper_highscores')) || [];
+  } catch {
+    scores = [];
+  }
+  scores.push({ name, score });
+  scores.sort((a, b) => a.score - b.score);
+  scores = scores.slice(0, 10);
+  localStorage.setItem('minesweeper_highscores', JSON.stringify(scores));
+}
+
+function getScoresLocal(callback) {
+  let scores = [];
+  try {
+    scores = JSON.parse(localStorage.getItem('minesweeper_highscores')) || [];
+  } catch {
+    scores = [];
+  }
+  callback(scores);
+}
 rocket.extend($ = rocket.$, rocket);
 var arcade = {};
 
@@ -20,35 +86,35 @@ arcade.minesweeper.prototype.mouse = {"left": false, "right": false};
 
 arcade.minesweeper.prototype.build = function(width, height) {
 
-	this.play_table = $.createElement("table").setAttribute({"cellspacing": 0, "cellpadding": 0}).style({"border": "1px solid black", "width": width*16 + 22, "-moz-box-shadow": "3px 3px 6px 1px #999", "-webkit-box-shadow": "3px 3px 6px 1px #999", "box-shadow": "3px 3px 6px 1px #999", "margin": "auto"});
-	var tbody = $.createElement("tbody");
+  this.play_table = $.createElement("table").setAttribute({"cellspacing": 0, "cellpadding": 0}).style({"border": "1px solid black", "width": width*16 + 22, "-moz-box-shadow": "3px 3px 6px 1px #999", "-webkit-box-shadow": "3px 3px 6px 1px #999", "box-shadow": "3px 3px 6px 1px #999", "margin": "auto"});
+  var tbody = $.createElement("tbody");
 
-	// 5 Rows
-	var tr_border_top = $.createElement("tr");
-	var tr_header = $.createElement("tr");
-	var tr_border_middle = $.createElement("tr");
-	var tr_border_bottom = $.createElement("tr");
+  // 5 Rows
+  var tr_border_top = $.createElement("tr");
+  var tr_header = $.createElement("tr");
+  var tr_border_middle = $.createElement("tr");
+  var tr_border_bottom = $.createElement("tr");
 
-	// Cells
-	var td_border_top_left = $.createElement("td").style({"width": 10, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "0px -81px"});
-	var td_border_top_right = $.createElement("td").style({"width": 10, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-26px -81px"});
-	tr_border_top.appendChild(td_border_top_left);
+  // Cells
+  var td_border_top_left = $.createElement("td").style({"width": 10, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "0px -81px"});
+  var td_border_top_right = $.createElement("td").style({"width": 10, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-26px -81px"});
+  tr_border_top.appendChild(td_border_top_left);
   for(var i = 0; i < width; i++) {
     tr_border_top.appendChild($.createElement("td").style({"width": 16, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-10px -81px"}));
   }
-	tr_border_top.appendChild(td_border_top_right);
+  tr_border_top.appendChild(td_border_top_right);
   tbody.appendChild(tr_border_top);
 
-	var td_header_left = $.createElement("td").style({"width": 10, "height": 32, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-36px -81px"});
-	var td_header_center = $.createElement("td").style({"background-color": "#c0c0c0"}).setAttribute({"colspan": width});
-	var td_header_right = $.createElement("td").style({"width": 10, "height": 32, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-36px -81px"});
+  var td_header_left = $.createElement("td").style({"width": 10, "height": 32, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-36px -81px"});
+  var td_header_center = $.createElement("td").style({"background-color": "#c0c0c0"}).setAttribute({"colspan": width});
+  var td_header_right = $.createElement("td").style({"width": 10, "height": 32, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-36px -81px"});
   tr_header.appendChild(td_header_left);
   tr_header.appendChild(td_header_center);
   tr_header.appendChild(td_header_right);
   tbody.appendChild(tr_header);
 
-	var td_border_middle_left = $.createElement("td").style({"width": 10, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-0px -91px"});
-	var td_border_middle_right = $.createElement("td").style({"width": 10, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-26px -91px"});
+  var td_border_middle_left = $.createElement("td").style({"width": 10, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-0px -91px"});
+  var td_border_middle_right = $.createElement("td").style({"width": 10, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-26px -91px"});
   tr_border_middle.appendChild(td_border_middle_left);
   for(var i = 0; i < width; i++) {
     tr_border_middle.appendChild($.createElement("td").style({"background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-10px -81px"}));
@@ -69,13 +135,13 @@ arcade.minesweeper.prototype.build = function(width, height) {
     tbody.appendChild(tr_grid_area);
   }
 
-	var td_border_bottom_left = $.createElement("td").style({"width": 10, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "0px -101px"});
-	var td_border_bottom_right = $.createElement("td").style({"width": 10, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-26px -101px"});
-	tr_border_bottom.appendChild(td_border_bottom_left);
+  var td_border_bottom_left = $.createElement("td").style({"width": 10, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "0px -101px"});
+  var td_border_bottom_right = $.createElement("td").style({"width": 10, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-26px -101px"});
+  tr_border_bottom.appendChild(td_border_bottom_left);
   for(var i = 0; i < width; i++) {
     tr_border_bottom.appendChild($.createElement("td").style({"width": 16, "height": 10, "background-image": "url('image/sprite.png')", "background-repeat": "no-repeat", "background-position": "-10px -101px"}));
   }
-	tr_border_bottom.appendChild(td_border_bottom_right);
+  tr_border_bottom.appendChild(td_border_bottom_right);
   tbody.appendChild(tr_border_bottom);
 
   this.play_table.appendChild(tbody);
@@ -122,12 +188,18 @@ arcade.minesweeper.prototype.new_game = function(width, height, number_mines) {
   this.mine_counter = new arcade.minesweeper.ssd(this.header_td_mine_count, number_mines)
   this.timer = new arcade.minesweeper.ssd(this.header_td_timer, 0);
 
-  setInterval(function() { 
+  // Stop previous timer if exists
+  if (this.timerInterval) {
+    clearInterval(this.timerInterval);
+  }
+
+  // Start new timer and store its id
+  this.timerInterval = setInterval(function() { 
     if (typeof this.timer !== "undefined") this.timer.increment(); 
   }.bind(this), 1000);
 
-	this.grid = new arcade.minesweeper.grid(this, this.grid_area, width, height, face);
-	this.grid.generate(number_mines);
+  this.grid = new arcade.minesweeper.grid(this, this.grid_area, width, height, face);
+  this.grid.generate(number_mines);
 }
 arcade.minesweeper.prototype.restart = function() {
   this.new_game(this.width, this.height, this.number_mines);
@@ -147,7 +219,8 @@ $.ready(function() {
     minesweeper.new_game(30, 16, 99);
   });
 
-  $('button_validate').addEventListener("click", function() {
+  $("#button_validate").addEventListener("click", function() {
+    console.log("Highscore validated.");
     minesweeper.new_game(minesweeper.width, minesweeper.height, minesweeper.number_mines);
   });
 
@@ -245,7 +318,6 @@ $.ready(function() {
       if (result === "won") {
         console.log("Congratulations! You won the game.");
         showHighscorePage(minesweeper.timer.get_value(), function() {
-          minesweeper.new_game(minesweeper.width, minesweeper.height, minesweeper.number_mines);
         });
       }
     })
@@ -255,95 +327,118 @@ $.ready(function() {
     });
 });
 
-function showHighscorePage(currentScore, startNewGameCallback) {
+
+
+// Sauvegarde du score côté serveur
+function saveScoreServer(name, score) {
+  fetch('http://localhost:4000/api/highscores', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, score })
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log('Score sauvegardé côté serveur', data);
+  })
+  .catch(err => console.error('Erreur serveur:', err));
+}
+
+// Récupération des scores côté serveur
+function getScoresServer(callback) {
+  fetch('http://localhost:4000/api/highscores')
+    .then(res => res.json())
+    .then(scores => callback(scores))
+    .catch(err => {
+      console.error('Erreur récupération scores:', err);
+      callback([]);
+    });
+}
+
+function showHighscorePage(currentScore) {
   // Remove any existing overlay
   const oldOverlay = document.getElementById('highscore-overlay');
   if (oldOverlay) oldOverlay.remove();
 
-  // Placeholder scores, more than 5 entries
-  const scores = [
-    { name: "Alice", score: 42 },
-    { name: "Bob", score: 55 },
-    { name: "Charlie", score: 38 },
-    { name: "Diana", score: 47 },
-    { name: "Eve", score: 50 },
-    { name: "Frank", score: 44 },
-    { name: "Grace", score: 41 },
-    { name: "", score: currentScore, isCurrent: true } // Current score row
-  ];
+  // Récupère les scores depuis le serveur
+  getScoresServer(function(scores) {
+    // Ajoute le score courant (non encore validé)
+    scores.push({ name: "", score: currentScore, isCurrent: true });
+    scores.sort((a, b) => a.score - b.score);
+    const displayScores = scores.slice(0, 10);
 
-  // Sort scores ascending (best = lowest score)
-  scores.sort((a, b) => a.score - b.score);
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'highscore-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.background = 'rgba(0,0,0,0.7)';
+    overlay.style.display = 'flex';
+    overlay.style.flexDirection = 'column';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '9999';
 
-  // Create overlay
-  const overlay = document.createElement('div');
-  overlay.id = 'highscore-overlay';
-  overlay.style.position = 'fixed';
-  overlay.style.top = '0';
-  overlay.style.left = '0';
-  overlay.style.width = '100vw';
-  overlay.style.height = '100vh';
-  overlay.style.background = 'rgba(0,0,0,0.7)';
-  overlay.style.display = 'flex';
-  overlay.style.flexDirection = 'column';
-  overlay.style.alignItems = 'center';
-  overlay.style.justifyContent = 'center';
-  overlay.style.zIndex = '9999';
+    // Ajout de l'indication du score final du joueur
+    const scoreInfo = document.createElement('div');
+    scoreInfo.textContent = `Your score : ${currentScore}`;
+    scoreInfo.style.color = '#fff';
+    scoreInfo.style.fontSize = '1.5em';
+    scoreInfo.style.marginBottom = '20px';
+    overlay.appendChild(scoreInfo);
 
-  // Highscore table
-  const table = document.createElement('table');
-  table.style.background = '#fff';
-  table.style.marginBottom = '20px';
-  table.style.borderCollapse = 'collapse';
-  table.innerHTML = `<tr><th>Name</th><th>Score</th></tr>`;
+    // Highscore table
+    const table = document.createElement('table');
+    table.style.background = '#fff';
+    table.style.marginBottom = '20px';
+    table.style.borderCollapse = 'collapse';
+    table.innerHTML = `<tr><th>Name</th><th>Score</th></tr>`;
 
-  // Add scores to table
-  scores.forEach(s => {
-    const tr = document.createElement('tr');
-    if (s.isCurrent) {
-      // Current score row with input
-      const nameTd = document.createElement('td');
-      const nameInput = document.createElement('input');
-      nameInput.type = 'text';
-      nameInput.placeholder = 'Your name';
-      nameInput.style.width = '100px';
-      nameInput.id = 'highscore-name-input';
-      nameTd.appendChild(nameInput);
+    // Add scores to table
+    displayScores.forEach(s => {
+      const tr = document.createElement('tr');
+      if (s.isCurrent) {
+        // Current score row with input
+        const nameTd = document.createElement('td');
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.placeholder = 'Your name';
+        nameInput.style.width = '100px';
+        nameInput.id = 'highscore-name-input';
+        nameTd.appendChild(nameInput);
 
-      const scoreTd = document.createElement('td');
-      scoreTd.textContent = s.score;
+        const scoreTd = document.createElement('td');
+        scoreTd.textContent = s.score;
 
-      tr.appendChild(nameTd);
-      tr.appendChild(scoreTd);
-      tr.style.background = '#e0ffe0';
-    } else {
-      tr.innerHTML = `<td>${s.name}</td><td>${s.score}</td>`;
-    }
-    table.appendChild(tr);
-  });
-
-  // Validate button
-  const validateBtn = document.createElement('button');
-  validateBtn.id = 'highscore_validate'; // Use a unique id for the modal button
-  validateBtn.textContent = 'Validate';
-  validateBtn.style.marginTop = '10px';
-  validateBtn.onclick = function() {
-    const nameInput = document.getElementById('highscore-name-input');
-    const playerName = nameInput ? (nameInput.value.trim() || "Anonymous") : "Anonymous";
-    for (let row of table.rows) {
-      if (row.style.background === 'rgb(224, 255, 224)') {
-        row.cells[0].textContent = playerName;
+        tr.appendChild(nameTd);
+        tr.appendChild(scoreTd);
+        tr.style.background = '#e0ffe0';
+      } else {
+        tr.innerHTML = `<td>${s.name}</td><td>${s.score}</td>`;
       }
-    }
-    overlay.remove();
+      table.appendChild(tr);
+    });
 
-    // Trigger the original button_validate click event
-    const btn = document.getElementById('button_validate');
-    if (btn) btn.click();
-  };
+    // Validate button
+    const validateBtn = document.createElement('button');
+    validateBtn.textContent = 'Validate';
+    validateBtn.style.marginTop = '10px';
+    validateBtn.onclick = function() {
+      const nameInput = document.getElementById('highscore-name-input');
+      const playerName = nameInput ? (nameInput.value.trim() || "Anonymous") : "Anonymous";
+      saveScoreServer(playerName, currentScore);
+      overlay.remove();
 
-  overlay.appendChild(table);
-  overlay.appendChild(validateBtn);
+      // Trigger the original button_validate click event
+      const btn = document.getElementById('button_validate');
+      if (btn) btn.click();
+    };
 
-  document.body.appendChild(overlay);
+    overlay.appendChild(table);
+    overlay.appendChild(validateBtn);
+
+    document.body.appendChild(overlay);
+  });
 }
